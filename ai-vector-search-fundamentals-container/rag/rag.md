@@ -23,7 +23,7 @@ No OCI Generative AI credential is required for this private HTTP configuration.
 
 In this lab, you will:
 
-* Add vectors to a support incident dataset
+* Verify the support incident vector column
 * Generate incident embeddings through the container
 * Call the container-hosted LLM from PL/SQL
 * Retrieve similar resolved incidents
@@ -44,14 +44,18 @@ This lab assumes you have:
 
     Use the password provided in the workshop login information.
 
-2. Add a 384-dimensional vector column to the support incident table.
+2. Verify the 384-dimensional vector column prepared by the workshop environment.
 
     ```sql
     <copy>
-    ALTER TABLE support_incidents
-    ADD (incident_vector VECTOR(384, FLOAT32));
+    SELECT column_name, data_type
+    FROM user_tab_columns
+    WHERE table_name = 'SUPPORT_INCIDENTS'
+      AND column_name = 'INCIDENT_VECTOR';
     </copy>
     ```
+
+    The result contains one `INCIDENT_VECTOR` column with data type `VECTOR`. The environment populates this column before handoff so the APEX application is ready to use; the next task regenerates the vectors so you can run the complete workflow yourself.
 
 3. Create a table that will hold one materialized question vector.
 
@@ -126,7 +130,7 @@ Call the local chat-completions endpoint with only the support question. Because
 
     DECLARE
       l_endpoint VARCHAR2(1000);
-      l_params   CLOB;
+      l_params   JSON;
       l_response CLOB;
     BEGIN
       SELECT config_value
@@ -140,14 +144,14 @@ Call the local chat-completions endpoint with only the support question. Because
         'host' VALUE 'local',
         'model' VALUE 'Ministral-3-3B-Reasoning-2512-Q8_0',
         'temperature' VALUE 0,
-        'max_tokens' VALUE 512,
+        'max_tokens' VALUE 256,
         'transfer_timeout' VALUE 120
-        RETURNING CLOB
+        RETURNING JSON
       );
 
       l_response := DBMS_VECTOR_CHAIN.UTL_TO_GENERATE_TEXT(
         'The Camera App times out during authentication',
-        JSON(l_params)
+        l_params
       );
 
       DBMS_OUTPUT.put_line(DBMS_LOB.substr(l_response, 32000, 1));
@@ -156,7 +160,7 @@ Call the local chat-completions endpoint with only the support question. Because
     </copy>
     ```
 
-    `max_tokens` is set to 512 because this is a reasoning model. A smaller limit can end the response before the model returns its final answer.
+    The workshop configures the included model with a concise chat template, so `max_tokens` can be limited to 256 while still returning a complete final answer.
 
 ## Task 4: Retrieve Similar Incidents
 
@@ -210,7 +214,7 @@ Generate the question embedding once and save it before searching. This avoids i
 
 ## Task 5: Generate a Grounded Answer
 
-The RAG block retrieves the five nearest incidents, turns them into context, appends the user question and response instructions, and sends the completed prompt to the container-hosted LLM.
+The RAG block retrieves the three nearest incidents, turns their resolutions into a compact context, appends the user question and response instructions, and sends the completed prompt to the container-hosted LLM. Keeping the context concise leaves the included reasoning model enough of its generation budget to return a final answer within the database request timeout.
 
 1. Run the grounded generation block.
 
@@ -220,7 +224,7 @@ The RAG block retrieves the five nearest incidents, turns them into context, app
 
     DECLARE
       l_endpoint      VARCHAR2(1000);
-      l_params        CLOB;
+      l_params        JSON;
       l_context       CLOB := TO_CLOB('');
       l_prompt        CLOB;
       l_response      CLOB;
@@ -233,8 +237,7 @@ The RAG block retrieves the five nearest incidents, turns them into context, app
       WHERE config_name = 'HTTP_ENDPOINT';
 
       FOR r IN (
-        SELECT s.incident_text,
-               s.resolution_notes,
+        SELECT s.resolution_notes,
                VECTOR_DISTANCE(s.incident_vector, q.query_vector, COSINE) AS distance
         FROM support_incidents s
         CROSS JOIN incident_query_vectors q
@@ -242,20 +245,19 @@ The RAG block retrieves the five nearest incidents, turns them into context, app
           AND s.status IN ('Closed', 'Resolved')
           AND s.resolution_notes IS NOT NULL
         ORDER BY distance
-        FETCH EXACT FIRST 5 ROWS ONLY
+        FETCH EXACT FIRST 3 ROWS ONLY
       ) LOOP
         l_context := l_context ||
-          'Problem: ' || r.incident_text || CHR(10) ||
-          'Resolution: ' || r.resolution_notes || CHR(10) || CHR(10);
+          '- ' || r.resolution_notes || CHR(10);
       END LOOP;
 
       l_prompt :=
-        'Use only the retrieved support cases to answer the question. ' ||
-        'Answer directly and concisely. Do not invent unsupported facts. ' ||
-        'If the cases are insufficient, say what information is missing.' ||
+        'Answer the support question using only the retrieved resolutions. ' ||
+        'Return one concise final answer and do not show reasoning. ' ||
+        'If the resolutions are insufficient, say what information is missing.' ||
         CHR(10) || CHR(10) ||
         'Question: ' || l_user_question || CHR(10) || CHR(10) ||
-        'Retrieved support cases:' || CHR(10) || l_context;
+        'Retrieved resolutions:' || CHR(10) || l_context;
 
       l_params := JSON_OBJECT(
         'provider' VALUE 'privateai',
@@ -263,14 +265,14 @@ The RAG block retrieves the five nearest incidents, turns them into context, app
         'host' VALUE 'local',
         'model' VALUE 'Ministral-3-3B-Reasoning-2512-Q8_0',
         'temperature' VALUE 0,
-        'max_tokens' VALUE 512,
+        'max_tokens' VALUE 256,
         'transfer_timeout' VALUE 120
-        RETURNING CLOB
+        RETURNING JSON
       );
 
       l_response := DBMS_VECTOR_CHAIN.UTL_TO_GENERATE_TEXT(
         l_prompt,
-        JSON(l_params)
+        l_params
       );
 
       DBMS_OUTPUT.put_line(DBMS_LOB.substr(l_response, 32000, 1));
@@ -295,7 +297,7 @@ The workshop environment includes an APEX application that applies the same retr
 
 3. Compare its response with the SQL result from Task 5.
 
-The application configuration must point its embedding and text-generation operations to the same Private AI Services Container endpoint used by this lab. This configuration will be verified as part of the final workshop image validation.
+The application uses a schema function that performs the same embedding, retrieval, prompt construction, and text-generation steps as the SQL exercises. The page sends one grounded user prompt to the container because the included model accepts user messages rather than a separate system-message role.
 
 ## Learn More
 

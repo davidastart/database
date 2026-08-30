@@ -14,7 +14,7 @@ Estimated Time: 20 minutes
 
 In this lab, you will:
 
-* Configure the Private AI endpoint supplied by Terraform
+* Verify the Private AI endpoint supplied by Terraform
 * Verify the container health and inspect its available models
 * Generate text embeddings with `DBMS_VECTOR.UTL_TO_EMBEDDING`
 * Add a vector column to the `PARKS` table
@@ -27,41 +27,12 @@ This lab assumes you have:
 
 * Access to the workshop's Database Actions SQL Worksheet
 * All previous labs successfully completed
-* The `private_ai_http_endpoint` value from the workshop Terraform outputs
 
-## Task 1: Configure and verify the Private AI endpoint
+## Task 1: Verify the Private AI endpoint
 
-Terraform created the Compute instance, started the container, configured the database network ACL, and displayed the container's private HTTP endpoint as an output. You will store that value once so every lab can reuse it.
+Terraform created the Compute instance, started the container, configured the database network ACL, and stored the container's private HTTP endpoint in `PRIVATE_AI_CONFIG`. Every lab reuses this configuration.
 
-1. Open the Terraform job outputs for your reservation and copy `private_ai_http_endpoint`. The value has this format:
-
-    ```text
-    http://privateai-<reservation-id>.<subnet-domain>:8080
-    ```
-
-    Do not add `/health` or `/v1/embeddings` to the value.
-
-2. Create a configuration table. Replace `<private-ai-http-endpoint>` with the value you copied, including `http://` and port `8080`.
-
-    ```sql
-    <copy>
-    CREATE TABLE private_ai_config (
-      config_name  VARCHAR2(30) PRIMARY KEY,
-      config_value VARCHAR2(1000) NOT NULL
-    );
-
-    INSERT INTO private_ai_config (config_name, config_value)
-    VALUES ('HTTP_ENDPOINT', '<private-ai-http-endpoint>');
-
-    GRANT SELECT ON private_ai_config TO incident;
-
-    COMMIT;
-    </copy>
-    ```
-
-    Use **Run Script** because the example contains multiple statements.
-
-3. Verify the stored endpoint.
+1. Display the endpoint prepared for your reservation.
 
     ```sql
     <copy>
@@ -70,7 +41,9 @@ Terraform created the Compute instance, started the container, configured the da
     </copy>
     ```
 
-4. Verify that the container is healthy. A successful request prints `HTTP status: 200 OK`.
+    The value begins with `http://`, uses the reservation-specific private DNS name, and ends with port `8080`. Do not add `/health` or `/v1/embeddings` when copying the base endpoint into other examples.
+
+2. Verify that the container is healthy. A successful request prints `HTTP status: 200 OK`.
 
     ```sql
     <copy>
@@ -97,7 +70,7 @@ Terraform created the Compute instance, started the container, configured the da
     </copy>
     ```
 
-5. Display the models loaded in the container.
+3. Display the models loaded in the container.
 
     ```sql
     <copy>

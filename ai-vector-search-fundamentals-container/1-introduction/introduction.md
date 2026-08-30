@@ -1,6 +1,6 @@
 # AI Vector Search with Private AI Services Container
 
-## About This Workshop
+## Introduction
 
 Oracle AI Vector Search lets applications store, index, and search vector embeddings alongside relational business data in Oracle AI Database. This workshop adds Oracle Private AI Services Container as a private inference runtime next to Autonomous AI Database Serverless.
 

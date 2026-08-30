@@ -101,10 +101,14 @@ The previous lab generated each remote embedding once and stored it in `PRIVATE_
            p.city,
            p.states,
            p.description,
-           VECTOR_DISTANCE(p.desc_vector, q.query_vector, COSINE) AS distance
+           VECTOR_DISTANCE(
+             p.desc_vector,
+             (SELECT q.query_vector
+              FROM private_ai_query_vectors q
+              WHERE q.query_name = 'CIVIL_WAR'),
+             COSINE
+           ) AS distance
     FROM parks p
-    CROSS JOIN private_ai_query_vectors q
-    WHERE q.query_name = 'CIVIL_WAR'
     ORDER BY distance
     FETCH APPROX FIRST 10 ROWS ONLY;
     </copy>
@@ -120,10 +124,14 @@ The previous lab generated each remote embedding once and stored it in `PRIVATE_
            p.city,
            p.states,
            p.description,
-           VECTOR_DISTANCE(p.desc_vector, q.query_vector, COSINE) AS distance
+           VECTOR_DISTANCE(
+             p.desc_vector,
+             (SELECT q.query_vector
+              FROM private_ai_query_vectors q
+              WHERE q.query_name = 'ROCK_CLIMBING'),
+             COSINE
+           ) AS distance
     FROM parks p
-    CROSS JOIN private_ai_query_vectors q
-    WHERE q.query_name = 'ROCK_CLIMBING'
     ORDER BY distance
     FETCH APPROX FIRST 10 ROWS ONLY;
     </copy>
@@ -142,9 +150,13 @@ The previous lab generated each remote embedding once and stored it in `PRIVATE_
            p.states,
            p.description
     FROM parks p
-    CROSS JOIN private_ai_query_vectors q
-    WHERE q.query_name = 'ROCK_CLIMBING'
-    ORDER BY VECTOR_DISTANCE(p.desc_vector, q.query_vector, COSINE)
+    ORDER BY VECTOR_DISTANCE(
+      p.desc_vector,
+      (SELECT q.query_vector
+       FROM private_ai_query_vectors q
+       WHERE q.query_name = 'ROCK_CLIMBING'),
+      COSINE
+    )
     FETCH APPROX FIRST 10 ROWS ONLY;
     </copy>
     ```
