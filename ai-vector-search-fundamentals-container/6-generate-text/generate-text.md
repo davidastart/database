@@ -43,6 +43,8 @@ The Terraform deployment stores the reservation-specific container URL in `PRIVA
 
     The result is an HTTP URL with the container host name and port `8080`.
 
+    ![Configured Private AI HTTP endpoint](../../6-generate-text/images/private-ai-http-endpoint.png " ")
+
 3. Verify the outbound HTTP permission granted to the current database user.
 
     ```sql
@@ -60,6 +62,8 @@ The Terraform deployment stores the reservation-specific container URL in `PRIVA
     ```
 
     The result includes an `HTTP` privilege with status `GRANTED`. `PRIVATE_TARGET` is `YES` because Autonomous AI Database Serverless reaches the container through its private network path.
+
+    ![Granted private HTTP network ACL](../../6-generate-text/images/private-ai-http-acl.png " ")
 
 ## Task 2: Generate Text from PL/SQL
 
@@ -107,6 +111,8 @@ The container includes the `Ministral-3-3B-Reasoning-2512-Q8_0` model. The follo
 
     The response explains vector embeddings. The exact wording can vary even when `temperature` is `0`.
 
+    ![Text generated from the container with PL/SQL](images/plsql-container-text-generation.png " ")
+
     The provider settings identify the container API:
 
     * `provider` selects the Private AI Services Container integration.
@@ -151,6 +157,8 @@ The container includes the `Ministral-3-3B-Reasoning-2512-Q8_0` model. The follo
     ```
 
     The result contains a generated comparison of semantic and keyword search. This SQL form can be incorporated into a query, stored procedure, or application workflow.
+
+    ![Text generated from the container with SQL](images/sql-container-text-generation.png " ")
 
 2. If a generation call fails, use the error to identify the layer that needs attention.
 

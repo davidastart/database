@@ -49,11 +49,17 @@ This lab assumes you have:
 
 The application opens on the National Parks image-search page.
 
+![National Parks image-search application](images/container-apex-initial.png " ")
+
 ## Task 2: Search with Text
 
 1. Enter `geysers` in the text-search field and select **Search Text**.
 
+    ![Geysers entered in the APEX text-search field](images/container-apex-text-entry.png " ")
+
 2. Review the ten closest image results.
+
+    ![National Parks text search results for geysers](images/container-apex-text-search.png " ")
 
 3. Try another phrase such as `Civil War`, `waterfall`, or `rock climbing`.
 
@@ -61,11 +67,17 @@ For a text search, the application calls `clip-vit-base-patch32-txt`. The return
 
 ## Task 3: Search with an Image
 
-1. Select **Upload image for search** and choose a supported image from your computer.
+1. Download the [rock-climbing sample image](images/rock-climber-upload.jpg), select **Upload image for search**, and choose the downloaded image.
+
+    The optimized JPEG is small enough for the APEX upload and embedding workflow while preserving the visual content needed for the search.
+
+    ![Rock-climbing sample selected for image search](images/container-apex-image-selected.png " ")
 
 2. Select **Search Image**.
 
 3. Review the visually similar results.
+
+    ![Visually similar climbing images returned by APEX](images/container-apex-image-results.png " ")
 
 APEX temporarily stores the upload, converts it to a BLOB, and sends the bytes to `clip-vit-base-patch32-img`. The uploaded image does not need to be hosted on a public URL.
 

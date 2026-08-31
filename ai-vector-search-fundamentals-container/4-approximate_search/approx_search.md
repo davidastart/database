@@ -50,6 +50,8 @@ HNSW indexes are stored in the Vector Pool, a memory area allocated from the Sys
 
     Before the first HNSW index is created, the output may show that little or no Vector Pool memory is in use.
 
+    ![Vector Pool before creating the HNSW index](images/vector-pool-before-index.png " ")
+
 ## Task 2: Create an HNSW Vector Index
 
 1. Create an HNSW index on the park description vectors.
@@ -65,6 +67,8 @@ HNSW indexes are stored in the Vector Pool, a memory area allocated from the Sys
 
     `DISTANCE COSINE` matches the metric used in the workshop searches. `TARGET ACCURACY 95` asks the index to balance search speed with a target recall of 95 percent.
 
+    ![Successful creation of the HNSW vector index](images/create-hnsw-index.png " ")
+
 2. Display information about the index.
 
     ```sql
@@ -77,6 +81,8 @@ HNSW indexes are stored in the Vector Pool, a memory area allocated from the Sys
 
     The vector count should match the rows in `PARKS` that contain a description vector.
 
+    ![HNSW index metadata and vector count](images/hnsw-index-details.png " ")
+
 3. Display the Vector Pool allocation again.
 
     ```sql
@@ -87,6 +93,8 @@ HNSW indexes are stored in the Vector Pool, a memory area allocated from the Sys
     ```
 
     The allocation and usage columns now reflect the memory consumed by the HNSW index.
+
+    ![Vector Pool allocation after creating the HNSW index](images/vector-pool-after-index.png " ")
 
 ## Task 3: Run Approximate Similarity Searches
 
@@ -127,6 +135,8 @@ As in the previous lab, each uncorrelated scalar subquery makes one request to t
 
     `FETCH APPROX` allows the optimizer to use an eligible vector index. By contrast, `FETCH EXACT` forces an exhaustive comparison.
 
+    ![Approximate semantic search results for Civil War](images/container-approx-civil-war.png " ")
+
 2. Run the same type of search for rock climbing.
 
     ```sql
@@ -161,6 +171,8 @@ As in the previous lab, each uncorrelated scalar subquery makes one request to t
     ```
 
     On this small dataset, the approximate and exact result sets may be identical. The performance benefit becomes more significant as the number of vectors grows.
+
+    ![Approximate semantic search results for rock climbing](images/container-approx-rock-climbing.png " ")
 
 ## Task 4: Confirm Index Use
 
@@ -197,6 +209,8 @@ As in the previous lab, each uncorrelated scalar subquery makes one request to t
     ```
 
     Look for a vector index operation such as `VECTOR INDEX HNSW SCAN` on `PARKS_HNSW_IDX`. The exact presentation can vary by database release and optimizer decisions.
+
+    ![Execution plan using the HNSW vector index](images/hnsw-execution-plan.png " ")
 
 ## Learn More
 

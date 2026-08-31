@@ -53,6 +53,8 @@ This lab assumes you have:
 
     The table includes an `IMAGE_BLOB` column containing the source bytes and an `IMAGE_VECTOR` column containing the corresponding CLIP embedding. Metadata such as title, description, park code, MIME type, and source URL remains available for filtering and attribution.
 
+    ![Image table columns including BLOB and vector data](images/image-table-columns.png " ")
+
 2. Confirm the number of images and vector dimensions.
 
     ```sql
@@ -68,6 +70,8 @@ This lab assumes you have:
 
     The vector dimensions should be `512`, matching the CLIP text and image services in the container.
 
+    ![Image BLOB count and CLIP vector dimensions](images/image-blob-vector-count.png " ")
+
 3. Display a sample of the available metadata without returning the BLOB or the full vector.
 
     ```sql
@@ -77,6 +81,8 @@ This lab assumes you have:
     FETCH FIRST 10 ROWS ONLY;
     </copy>
     ```
+
+    ![Sample image metadata stored with the BLOBs and vectors](images/image-metadata-sample.png " ")
 
 ## Task 2: Search Images with Text
 
@@ -117,6 +123,8 @@ Generate the remote embedding in an uncorrelated scalar subquery. Oracle evaluat
     ```
 
     The container generated the query vector, while Autonomous AI Database Serverless compared that vector with the stored image vectors.
+
+    ![Image search results using a CLIP text embedding](images/clip-text-image-search.png " ")
 
 ## Task 3: Search with a Stored Image
 
@@ -167,6 +175,8 @@ The BLOB overload of `DBMS_VECTOR.UTL_TO_EMBEDDING` accepts the image bytes dire
 
     The scalar subquery sends only the selected BLOB to the container once. The outer query compares the returned vector with the image vectors already stored in the database.
 
+    ![Similar images found from a stored rock-climbing image](images/clip-stored-image-search.png " ")
+
 ## Task 4: Combine Vector and Relational Search
 
 Vector search can be combined with ordinary SQL predicates and joins. Generate a CLIP text vector for `waterfall` inside the query, then limit the results to parks in the western United States.
@@ -210,6 +220,8 @@ Vector search can be combined with ordinary SQL predicates and joins. Generate a
     ```
 
     The result demonstrates the open division of work used throughout the workshop: the container generates embeddings, while Autonomous AI Database Serverless stores the data and combines vector similarity with relational SQL.
+
+    ![Waterfall image search combined with relational location filters](images/clip-relational-waterfall-search.png " ")
 
 ## Learn More
 

@@ -60,6 +60,8 @@ The first query searches for parks associated with the American Civil War. The s
 
     Famous Civil War locations should appear near the top. The scalar subquery makes one request to the container, and the `EXACT` keyword requires an exhaustive search.
 
+    ![Exact semantic search results for Civil War](images/container-exact-civil-war.png " ")
+
 2. Search for parks suited to rock climbing.
 
     ```sql
@@ -90,6 +92,8 @@ The first query searches for parks associated with the American Civil War. The s
     ```
 
     The semantic search can identify relevant parks even when the exact phrase does not occur in most descriptions.
+
+    ![Exact semantic search results for rock climbing](images/container-exact-rock-climbing.png " ")
 
 ## Task 2: Display vector distances
 
@@ -128,6 +132,8 @@ The cosine distance is smallest for the closest semantic match. Displaying it ma
 
     The distance increases as the results become less similar to the query vector.
 
+    ![Cosine distances for the rock-climbing search](images/container-exact-distance.png " ")
+
 ## Task 3: Examine the exhaustive execution plan
 
 No vector index exists yet, so the database must evaluate all `PARKS` vectors.
@@ -162,6 +168,8 @@ No vector index exists yet, so the database must evaluate all `PARKS` vectors.
     ```
 
     The plan includes table access for `PARKS`. The next lab creates an HNSW vector index and changes the search to approximate nearest-neighbor access.
+
+    ![Execution plan for the exhaustive vector search](images/container-exact-plan.png " ")
 
 ## Learn More
 

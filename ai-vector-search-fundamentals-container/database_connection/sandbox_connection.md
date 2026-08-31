@@ -37,9 +37,13 @@ See the image below for an example:
 
 ![browser setup](images/browser_setup.png " ")
 
+The Database Actions sign-in page opens. Enter the workshop credentials from the previous step.
+
+![National Parks Database Actions sign-in page](images/nationalparks-sign-in.png " ")
+
 After signing in you should see a browser window like the following:
 
-![sqldev browser](images/sql_np_worksheet.png " ")
+![National Parks SQL Worksheet after signing in](images/nationalparks-sql-worksheet.png " ")
 
 ## Learn More
 
