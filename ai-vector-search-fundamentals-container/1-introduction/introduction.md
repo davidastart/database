@@ -4,7 +4,7 @@
 
 Oracle AI Vector Search lets applications store, index, and search vector embeddings alongside relational business data in Oracle AI Database. This workshop adds Oracle Private AI Services Container as a private inference runtime next to Autonomous AI Database Serverless.
 
-Estimated Workshop Time: 100 minutes
+Estimated Workshop Time: 115 minutes
 
 A vector embedding is a numerical representation of text, an image, or another unstructured object. Similar objects are placed near one another in the embedding space. Applications can therefore search by meaning or visual similarity instead of relying only on exact words and values.
 
@@ -33,7 +33,7 @@ The workshop environment contains:
 
 The workshop uses HTTP on the private network so that the exercises remain focused on vector and AI operations. Production deployments should use HTTPS, certificate validation, narrower network rules, and the authentication controls appropriate for the environment.
 
-You will first generate text embeddings through the container and store them in the database. You will then run exact and indexed similarity searches. The image lab uses the container's paired CLIP models to compare text and image BLOBs in the same vector space. The final exercises show how the same architecture can support applications and retrieval-augmented generation.
+You will first generate text embeddings through the container and store them in the database. You will then run exact and indexed similarity searches. The image lab uses the container's paired CLIP models to compare text and image BLOBs in the same vector space. The final exercises generate text with the container-hosted LLM, use the vector data in APEX, and build a retrieval-augmented generation flow.
 
 ### Objectives
 
@@ -46,6 +46,7 @@ In this workshop, you will:
 * Create an HNSW vector index and perform approximate searches
 * Generate compatible text and image vectors with CLIP
 * Combine vector similarity with relational filters and joins
+* Generate text from SQL and PL/SQL with a container-hosted LLM
 * Explore an APEX application built on the same vector data
 * Build a retrieval-augmented generation flow with a container-hosted LLM
 

@@ -40,13 +40,18 @@
             "filename": "../../5-image_search/image_search.md"
         },
         {
-            "title": "Lab 5: APEX Demo",
+            "title": "Lab 5: Generate Text with the Container LLM",
+            "description": "Generate text from SQL and PL/SQL with a container-hosted LLM",
+            "filename": "../../6-generate-text/generate-text.md"
+        },
+        {
+            "title": "Lab 6: APEX Demo",
             "description": "Use container-generated vectors in an APEX application",
             "type": "sandbox",
             "filename": "../../6-apex_demo/apex_demo.md"
         },
         {
-            "title": "Lab 6: Retrieval Augmented Generation (RAG)",
+            "title": "Lab 7: Retrieval Augmented Generation (RAG)",
             "description": "Build RAG with container-hosted embedding and generation models",
             "type": "sandbox",
             "filename": "../../rag/rag.md"

@@ -10,7 +10,7 @@ Estimated Time: 25 minutes
 
 ### About This Lab
 
-The `INCIDENT` schema contains 500 synthetic support incidents. Each record describes a problem and, for closed or resolved incidents, the resolution. You will compare a generic LLM answer with an answer grounded in similar resolved incidents.
+The `INCIDENT` schema contains 500 synthetic support incidents. Each record describes a problem and, for closed or resolved incidents, the resolution. You will retrieve relevant resolutions and add them to the prompt so the model can answer from the support data.
 
 The container exposes both services through the same HTTP endpoint:
 
@@ -35,6 +35,7 @@ In this lab, you will:
 This lab assumes you have:
 
 * Completed the Vector Embeddings lab
+* Completed the Generate Text with the Container LLM lab
 * A healthy Private AI Services Container endpoint
 * Access to the `INCIDENT` database user
 
@@ -107,51 +108,7 @@ Each support incident is sent to `all-minilm-l12-v2`. The returned vector is sto
 
     The expected result is 500 rows with 384 dimensions.
 
-## Task 3: Ask the LLM Without Retrieved Context
-
-Call the local chat-completions endpoint with only the support question. Because the prompt does not include company incident data, the answer can only provide general troubleshooting advice.
-
-1. Run the following PL/SQL block.
-
-    ```sql
-    <copy>
-    SET SERVEROUTPUT ON
-
-    DECLARE
-      l_endpoint VARCHAR2(1000);
-      l_params   JSON;
-      l_response CLOB;
-    BEGIN
-      SELECT config_value
-      INTO l_endpoint
-      FROM nationalparks.private_ai_config
-      WHERE config_name = 'HTTP_ENDPOINT';
-
-      l_params := JSON_OBJECT(
-        'provider' VALUE 'privateai',
-        'url' VALUE l_endpoint || '/v1/chat/completions',
-        'host' VALUE 'local',
-        'model' VALUE 'Ministral-3-3B-Reasoning-2512-Q8_0',
-        'temperature' VALUE 0,
-        'max_tokens' VALUE 256,
-        'transfer_timeout' VALUE 120
-        RETURNING JSON
-      );
-
-      l_response := DBMS_VECTOR_CHAIN.UTL_TO_GENERATE_TEXT(
-        'The Camera App times out during authentication',
-        l_params
-      );
-
-      DBMS_OUTPUT.put_line(DBMS_LOB.substr(l_response, 32000, 1));
-    END;
-    /
-    </copy>
-    ```
-
-    The workshop configures the included model with a concise chat template, so `max_tokens` can be limited to 256 while still returning a complete final answer.
-
-## Task 4: Retrieve Similar Incidents
+## Task 3: Retrieve Similar Incidents
 
 Generate the question embedding in an uncorrelated scalar subquery. Oracle evaluates the scalar subquery once and uses that vector while searching the incident rows.
 
@@ -190,7 +147,7 @@ Generate the question embedding in an uncorrelated scalar subquery. Oracle evalu
 
     These results contain actual resolutions from the synthetic company dataset rather than general knowledge from the LLM.
 
-## Task 5: Generate a Grounded Answer
+## Task 4: Generate a Grounded Answer
 
 The RAG block retrieves the three nearest incidents, turns their resolutions into a compact context, appends the user question and response instructions, and sends the completed prompt to the container-hosted LLM. Keeping the context concise leaves the included reasoning model enough of its generation budget to return a final answer within the database request timeout.
 
@@ -270,9 +227,9 @@ The RAG block retrieves the three nearest incidents, turns their resolutions int
     </copy>
     ```
 
-    Compare this response with the generic answer from Task 3. The grounded response should reflect the resolutions retrieved from `SUPPORT_INCIDENTS`.
+    The grounded response should reflect the resolutions retrieved from `SUPPORT_INCIDENTS`, unlike the general model answers generated in the previous lab.
 
-## Task 6: Open the Support Incidents Application
+## Task 5: Open the Support Incidents Application
 
 The workshop environment includes an APEX application that applies the same retrieval and generation flow.
 
@@ -284,7 +241,7 @@ The workshop environment includes an APEX application that applies the same retr
     The Camera App times out during authentication
     ```
 
-3. Compare its response with the SQL result from Task 5.
+3. Compare its response with the SQL result from Task 4.
 
 The application uses a schema function that performs the same embedding, retrieval, prompt construction, and text-generation steps as the SQL exercises. The page sends one grounded user prompt to the container because the included model accepts user messages rather than a separate system-message role.
 
