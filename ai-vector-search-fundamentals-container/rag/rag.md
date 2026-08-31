@@ -57,17 +57,6 @@ This lab assumes you have:
 
     The result contains one `INCIDENT_VECTOR` column with data type `VECTOR`. The environment populates this column before handoff so the APEX application is ready to use; the next task regenerates the vectors so you can run the complete workflow yourself.
 
-3. Create a table that will hold one materialized question vector.
-
-    ```sql
-    <copy>
-    CREATE TABLE incident_query_vectors (
-      query_name   VARCHAR2(100) PRIMARY KEY,
-      query_vector VECTOR(384, FLOAT32)
-    );
-    </copy>
-    ```
-
 ## Task 2: Generate Incident Embeddings
 
 Each support incident is sent to `all-minilm-l12-v2`. The returned vector is stored with the incident and can then be searched entirely inside the database.
@@ -164,46 +153,35 @@ Call the local chat-completions endpoint with only the support question. Because
 
 ## Task 4: Retrieve Similar Incidents
 
-Generate the question embedding once and save it before searching. This avoids invoking the remote service while Oracle evaluates every candidate row.
+Generate the question embedding in an uncorrelated scalar subquery. Oracle evaluates the scalar subquery once and uses that vector while searching the incident rows.
 
-1. Create the question vector.
-
-    ```sql
-    <copy>
-    DELETE FROM incident_query_vectors
-    WHERE query_name = 'CAMERA_AUTH_TIMEOUT';
-
-    INSERT INTO incident_query_vectors (query_name, query_vector)
-    SELECT 'CAMERA_AUTH_TIMEOUT',
-           DBMS_VECTOR.UTL_TO_EMBEDDING(
-             'The Camera App times out during authentication',
-             JSON_OBJECT(
-               'provider' VALUE 'privateai',
-               'credential_name' VALUE NULL,
-               'url' VALUE c.config_value || '/v1/embeddings',
-               'host' VALUE 'local',
-               'model' VALUE 'all-minilm-l12-v2'
-               RETURNING JSON
-             )
-           )
-    FROM nationalparks.private_ai_config c
-    WHERE c.config_name = 'HTTP_ENDPOINT';
-
-    COMMIT;
-    </copy>
-    ```
-
-2. Retrieve the five closest resolved incidents.
+1. Retrieve the five closest resolved incidents.
 
     ```sql
     <copy>
     SELECT s.incident_text,
            s.resolution_notes,
-           VECTOR_DISTANCE(s.incident_vector, q.query_vector, COSINE) AS distance
+           VECTOR_DISTANCE(
+             s.incident_vector,
+             (
+               SELECT DBMS_VECTOR.UTL_TO_EMBEDDING(
+                        'The Camera App times out during authentication',
+                        JSON_OBJECT(
+                          'provider' VALUE 'privateai',
+                          'credential_name' VALUE NULL,
+                          'url' VALUE c.config_value || '/v1/embeddings',
+                          'host' VALUE 'local',
+                          'model' VALUE 'all-minilm-l12-v2'
+                          RETURNING JSON
+                        )
+                      )
+               FROM nationalparks.private_ai_config c
+               WHERE c.config_name = 'HTTP_ENDPOINT'
+             ),
+             COSINE
+           ) AS distance
     FROM support_incidents s
-    CROSS JOIN incident_query_vectors q
-    WHERE q.query_name = 'CAMERA_AUTH_TIMEOUT'
-      AND s.status IN ('Closed', 'Resolved')
+    WHERE s.status IN ('Closed', 'Resolved')
       AND s.resolution_notes IS NOT NULL
     ORDER BY distance
     FETCH EXACT FIRST 5 ROWS ONLY;
@@ -228,6 +206,7 @@ The RAG block retrieves the three nearest incidents, turns their resolutions int
       l_context       CLOB := TO_CLOB('');
       l_prompt        CLOB;
       l_response      CLOB;
+      l_query_vector  VECTOR;
       l_user_question VARCHAR2(1000) :=
         'The Camera App times out during authentication';
     BEGIN
@@ -236,13 +215,23 @@ The RAG block retrieves the three nearest incidents, turns their resolutions int
       FROM nationalparks.private_ai_config
       WHERE config_name = 'HTTP_ENDPOINT';
 
+      l_query_vector := DBMS_VECTOR.UTL_TO_EMBEDDING(
+        l_user_question,
+        JSON_OBJECT(
+          'provider' VALUE 'privateai',
+          'credential_name' VALUE NULL,
+          'url' VALUE l_endpoint || '/v1/embeddings',
+          'host' VALUE 'local',
+          'model' VALUE 'all-minilm-l12-v2'
+          RETURNING JSON
+        )
+      );
+
       FOR r IN (
         SELECT s.resolution_notes,
-               VECTOR_DISTANCE(s.incident_vector, q.query_vector, COSINE) AS distance
+               VECTOR_DISTANCE(s.incident_vector, l_query_vector, COSINE) AS distance
         FROM support_incidents s
-        CROSS JOIN incident_query_vectors q
-        WHERE q.query_name = 'CAMERA_AUTH_TIMEOUT'
-          AND s.status IN ('Closed', 'Resolved')
+        WHERE s.status IN ('Closed', 'Resolved')
           AND s.resolution_notes IS NOT NULL
         ORDER BY distance
         FETCH EXACT FIRST 3 ROWS ONLY

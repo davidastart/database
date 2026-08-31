@@ -19,7 +19,6 @@ In this lab, you will:
 * Generate text embeddings with `DBMS_VECTOR.UTL_TO_EMBEDDING`
 * Add a vector column to the `PARKS` table
 * Populate the vector column with container-generated embeddings
-* Create a small table for materializing query vectors used in later labs
 
 ### Prerequisites
 
@@ -214,17 +213,6 @@ The `PARKS` table contains 472 rows. Each row makes one private embedding reques
     ```
 
     The expected result is 472 rows with 384 dimensions.
-
-3. Create a table for query vectors. Later labs generate each remote query vector once, store it here, and reuse it during the similarity search.
-
-    ```sql
-    <copy>
-    CREATE TABLE private_ai_query_vectors (
-      query_name   VARCHAR2(100) PRIMARY KEY,
-      query_vector VECTOR
-    );
-    </copy>
-    ```
 
 ## Learn More
 

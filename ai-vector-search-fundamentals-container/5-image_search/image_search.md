@@ -80,36 +80,9 @@ This lab assumes you have:
 
 ## Task 2: Search Images with Text
 
-Generate the remote embedding once, store it, and then use it in the similarity query. This prevents the database from invoking the container repeatedly while it scans the image rows.
+Generate the remote embedding in an uncorrelated scalar subquery. Oracle evaluates the scalar subquery once and uses that vector while scanning the stored image vectors.
 
-1. Generate and save a CLIP text vector for `Civil War`.
-
-    ```sql
-    <copy>
-    DELETE FROM private_ai_query_vectors
-    WHERE query_name = 'IMAGE_CIVIL_WAR';
-
-    INSERT INTO private_ai_query_vectors (query_name, query_vector)
-    SELECT 'IMAGE_CIVIL_WAR',
-           DBMS_VECTOR.UTL_TO_EMBEDDING(
-             'Civil War',
-             JSON_OBJECT(
-               'provider' VALUE 'privateai',
-               'credential_name' VALUE NULL,
-               'url' VALUE config_value || '/v1/embeddings',
-               'host' VALUE 'local',
-               'model' VALUE 'clip-vit-base-patch32-txt'
-               RETURNING JSON
-             )
-           )
-    FROM private_ai_config
-    WHERE config_name = 'HTTP_ENDPOINT';
-
-    COMMIT;
-    </copy>
-    ```
-
-2. Search the stored image vectors.
+1. Search the stored image vectors with a CLIP text vector for `Civil War`.
 
     ```sql
     <copy>
@@ -118,10 +91,26 @@ Generate the remote embedding once, store it, and then use it in the similarity 
            i.description,
            i.park_code,
            i.source_url,
-           VECTOR_DISTANCE(i.image_vector, q.query_vector, COSINE) AS distance
+           VECTOR_DISTANCE(
+             i.image_vector,
+             (
+               SELECT DBMS_VECTOR.UTL_TO_EMBEDDING(
+                        'Civil War',
+                        JSON_OBJECT(
+                          'provider' VALUE 'privateai',
+                          'credential_name' VALUE NULL,
+                          'url' VALUE config_value || '/v1/embeddings',
+                          'host' VALUE 'local',
+                          'model' VALUE 'clip-vit-base-patch32-txt'
+                          RETURNING JSON
+                        )
+                      )
+               FROM private_ai_config
+               WHERE config_name = 'HTTP_ENDPOINT'
+             ),
+             COSINE
+           ) AS distance
     FROM park_images_blob i
-    CROSS JOIN private_ai_query_vectors q
-    WHERE q.query_name = 'IMAGE_CIVIL_WAR'
     ORDER BY distance
     FETCH EXACT FIRST 10 ROWS ONLY;
     </copy>
@@ -133,45 +122,7 @@ Generate the remote embedding once, store it, and then use it in the similarity 
 
 The BLOB overload of `DBMS_VECTOR.UTL_TO_EMBEDDING` accepts the image bytes directly. The modality argument tells the package to submit the input as an image.
 
-1. Choose one image tagged for rock climbing, generate its image embedding, and save the result.
-
-    ```sql
-    <copy>
-    DELETE FROM private_ai_query_vectors
-    WHERE query_name = 'IMAGE_ROCK_CLIMBING';
-
-    INSERT INTO private_ai_query_vectors (query_name, query_vector)
-    SELECT 'IMAGE_ROCK_CLIMBING',
-           DBMS_VECTOR.UTL_TO_EMBEDDING(
-             image_blob,
-             'image',
-             JSON_OBJECT(
-               'provider' VALUE 'privateai',
-               'credential_name' VALUE NULL,
-               'url' VALUE c.config_value || '/v1/embeddings',
-               'host' VALUE 'local',
-               'model' VALUE 'clip-vit-base-patch32-img'
-               RETURNING JSON
-             )
-           )
-    FROM (
-      SELECT image_blob
-      FROM park_images_blob
-      WHERE UPPER(source_query) = 'ROCK CLIMBING'
-        AND image_blob IS NOT NULL
-      ORDER BY image_id
-      FETCH FIRST 1 ROW ONLY
-    ) i
-    CROSS JOIN private_ai_config c
-    WHERE c.config_name = 'HTTP_ENDPOINT';
-
-    COMMIT;
-    </copy>
-    ```
-
-    This operation sends only the selected BLOB to the container. The other images remain in the database and are compared through their stored vectors.
-
-2. Find the ten closest images.
+1. Choose one image tagged for rock climbing and search for the ten closest images.
 
     ```sql
     <copy>
@@ -180,47 +131,47 @@ The BLOB overload of `DBMS_VECTOR.UTL_TO_EMBEDDING` accepts the image bytes dire
            i.description,
            i.park_code,
            i.source_url,
-           VECTOR_DISTANCE(i.image_vector, q.query_vector, COSINE) AS distance
+           VECTOR_DISTANCE(
+             i.image_vector,
+             (
+               SELECT DBMS_VECTOR.UTL_TO_EMBEDDING(
+                        source_image.image_blob,
+                        'image',
+                        JSON_OBJECT(
+                          'provider' VALUE 'privateai',
+                          'credential_name' VALUE NULL,
+                          'url' VALUE c.config_value || '/v1/embeddings',
+                          'host' VALUE 'local',
+                          'model' VALUE 'clip-vit-base-patch32-img'
+                          RETURNING JSON
+                        )
+                      )
+               FROM (
+                 SELECT image_blob
+                 FROM park_images_blob
+                 WHERE UPPER(source_query) = 'ROCK CLIMBING'
+                   AND image_blob IS NOT NULL
+                 ORDER BY image_id
+                 FETCH FIRST 1 ROW ONLY
+               ) source_image
+               CROSS JOIN private_ai_config c
+               WHERE c.config_name = 'HTTP_ENDPOINT'
+             ),
+             COSINE
+           ) AS distance
     FROM park_images_blob i
-    CROSS JOIN private_ai_query_vectors q
-    WHERE q.query_name = 'IMAGE_ROCK_CLIMBING'
     ORDER BY distance
     FETCH EXACT FIRST 10 ROWS ONLY;
     </copy>
     ```
 
+    The scalar subquery sends only the selected BLOB to the container once. The outer query compares the returned vector with the image vectors already stored in the database.
+
 ## Task 4: Combine Vector and Relational Search
 
-Vector search can be combined with ordinary SQL predicates and joins. Generate a CLIP text vector for `waterfall`, then limit the results to parks in the western United States.
+Vector search can be combined with ordinary SQL predicates and joins. Generate a CLIP text vector for `waterfall` inside the query, then limit the results to parks in the western United States.
 
-1. Generate and save the query vector.
-
-    ```sql
-    <copy>
-    DELETE FROM private_ai_query_vectors
-    WHERE query_name = 'IMAGE_WATERFALL';
-
-    INSERT INTO private_ai_query_vectors (query_name, query_vector)
-    SELECT 'IMAGE_WATERFALL',
-           DBMS_VECTOR.UTL_TO_EMBEDDING(
-             'waterfall',
-             JSON_OBJECT(
-               'provider' VALUE 'privateai',
-               'credential_name' VALUE NULL,
-               'url' VALUE config_value || '/v1/embeddings',
-               'host' VALUE 'local',
-               'model' VALUE 'clip-vit-base-patch32-txt'
-               RETURNING JSON
-             )
-           )
-    FROM private_ai_config
-    WHERE config_name = 'HTTP_ENDPOINT';
-
-    COMMIT;
-    </copy>
-    ```
-
-2. Combine image similarity with park location data.
+1. Combine image similarity with park location data.
 
     ```sql
     <copy>
@@ -230,13 +181,29 @@ Vector search can be combined with ordinary SQL predicates and joins. Generate a
            p.city,
            p.states,
            i.source_url,
-           VECTOR_DISTANCE(i.image_vector, q.query_vector, COSINE) AS distance
+           VECTOR_DISTANCE(
+             i.image_vector,
+             (
+               SELECT DBMS_VECTOR.UTL_TO_EMBEDDING(
+                        'waterfall',
+                        JSON_OBJECT(
+                          'provider' VALUE 'privateai',
+                          'credential_name' VALUE NULL,
+                          'url' VALUE config_value || '/v1/embeddings',
+                          'host' VALUE 'local',
+                          'model' VALUE 'clip-vit-base-patch32-txt'
+                          RETURNING JSON
+                        )
+                      )
+               FROM private_ai_config
+               WHERE config_name = 'HTTP_ENDPOINT'
+             ),
+             COSINE
+           ) AS distance
     FROM park_images_blob i
     JOIN parks p
       ON p.park_code = i.park_code
-    CROSS JOIN private_ai_query_vectors q
-    WHERE q.query_name = 'IMAGE_WATERFALL'
-      AND p.states IN ('CA', 'OR', 'NV', 'WA', 'AZ', 'CO')
+    WHERE p.states IN ('CA', 'OR', 'NV', 'WA', 'AZ', 'CO')
     ORDER BY distance
     FETCH EXACT FIRST 10 ROWS ONLY;
     </copy>

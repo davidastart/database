@@ -25,7 +25,7 @@ In this lab, you will:
 * Inspect the Vector Pool
 * Create an HNSW index on `PARKS.DESC_VECTOR`
 * Inspect vector index metadata and memory use
-* Reuse container-generated query vectors in approximate searches
+* Generate one container query vector inside each approximate search
 * Confirm that Oracle AI Database uses the HNSW index
 
 ### Prerequisites
@@ -34,7 +34,6 @@ This lab assumes you have:
 
 * Completed the previous labs
 * Generated the `PARKS.DESC_VECTOR` values through the Private AI Services Container
-* Stored the `CIVIL_WAR` and `ROCK_CLIMBING` vectors in `PRIVATE_AI_QUERY_VECTORS`
 
 ## Task 1: View the Vector Pool
 
@@ -91,7 +90,7 @@ HNSW indexes are stored in the Vector Pool, a memory area allocated from the Sys
 
 ## Task 3: Run Approximate Similarity Searches
 
-The previous lab generated each remote embedding once and stored it in `PRIVATE_AI_QUERY_VECTORS`. Reusing those vectors keeps the similarity query focused on database work and avoids repeating an HTTP call while Oracle evaluates the result set.
+As in the previous lab, each uncorrelated scalar subquery makes one request to the container. Oracle then uses that one query vector for the indexed similarity search.
 
 1. Find parks related to the Civil War with an approximate search.
 
@@ -103,9 +102,21 @@ The previous lab generated each remote embedding once and stored it in `PRIVATE_
            p.description,
            VECTOR_DISTANCE(
              p.desc_vector,
-             (SELECT q.query_vector
-              FROM private_ai_query_vectors q
-              WHERE q.query_name = 'CIVIL_WAR'),
+             (
+               SELECT DBMS_VECTOR.UTL_TO_EMBEDDING(
+                        'Civil War',
+                        JSON_OBJECT(
+                          'provider' VALUE 'privateai',
+                          'credential_name' VALUE NULL,
+                          'url' VALUE config_value || '/v1/embeddings',
+                          'host' VALUE 'local',
+                          'model' VALUE 'all-minilm-l12-v2'
+                          RETURNING JSON
+                        )
+                      )
+               FROM private_ai_config
+               WHERE config_name = 'HTTP_ENDPOINT'
+             ),
              COSINE
            ) AS distance
     FROM parks p
@@ -126,9 +137,21 @@ The previous lab generated each remote embedding once and stored it in `PRIVATE_
            p.description,
            VECTOR_DISTANCE(
              p.desc_vector,
-             (SELECT q.query_vector
-              FROM private_ai_query_vectors q
-              WHERE q.query_name = 'ROCK_CLIMBING'),
+             (
+               SELECT DBMS_VECTOR.UTL_TO_EMBEDDING(
+                        'rock climbing',
+                        JSON_OBJECT(
+                          'provider' VALUE 'privateai',
+                          'credential_name' VALUE NULL,
+                          'url' VALUE config_value || '/v1/embeddings',
+                          'host' VALUE 'local',
+                          'model' VALUE 'all-minilm-l12-v2'
+                          RETURNING JSON
+                        )
+                      )
+               FROM private_ai_config
+               WHERE config_name = 'HTTP_ENDPOINT'
+             ),
              COSINE
            ) AS distance
     FROM parks p
@@ -152,9 +175,21 @@ The previous lab generated each remote embedding once and stored it in `PRIVATE_
     FROM parks p
     ORDER BY VECTOR_DISTANCE(
       p.desc_vector,
-      (SELECT q.query_vector
-       FROM private_ai_query_vectors q
-       WHERE q.query_name = 'ROCK_CLIMBING'),
+      (
+        SELECT DBMS_VECTOR.UTL_TO_EMBEDDING(
+                 'rock climbing',
+                 JSON_OBJECT(
+                   'provider' VALUE 'privateai',
+                   'credential_name' VALUE NULL,
+                   'url' VALUE config_value || '/v1/embeddings',
+                   'host' VALUE 'local',
+                   'model' VALUE 'all-minilm-l12-v2'
+                   RETURNING JSON
+                 )
+               )
+        FROM private_ai_config
+        WHERE config_name = 'HTTP_ENDPOINT'
+      ),
       COSINE
     )
     FETCH APPROX FIRST 10 ROWS ONLY;
