@@ -2,7 +2,7 @@
 
 ## Introduction
 
-Vector embeddings let you compare meaning, but they do not produce a written answer. The Private AI Services Container also hosts a large language model (LLM) that Autonomous AI Database Serverless can call from SQL and PL/SQL. The model runs on the container host, while the prompt and generated response remain part of the database workflow.
+Vector embeddings allow you to search for semantically similar unstructured content. Large language models are more general-purpose and can generate answers from an input prompt. The Private AI Services Container can host an LLM that Autonomous AI Database Serverless calls from SQL or PL/SQL. The LLM runs on the container host, while prompts and generated responses remain part of the database workflow.
 
 In this lab, you will call the container's HTTP chat-completions endpoint with `DBMS_VECTOR_CHAIN.UTL_TO_GENERATE_TEXT`. The workshop environment has already configured the container endpoint, private network path, and database network access control list (ACL).
 
@@ -67,7 +67,7 @@ The Terraform deployment stores the reservation-specific container URL in `PRIVA
 
 ## Task 2: Generate Text from PL/SQL
 
-The container includes the `Ministral-3-3B-Reasoning-2512-Q8_0` model. The following block builds the provider configuration as JSON, sends a prompt to `/v1/chat/completions`, and prints the model's response.
+The workshop container includes and serves the `Ministral-3-3B-Reasoning-2512-Q8_0` model. Private AI Services Container can also serve other compatible open-weight models from Hugging Face after they are downloaded and configured. The following block builds the provider configuration as JSON, sends a prompt to `/v1/chat/completions`, and prints the model's response.
 
 1. Run the PL/SQL block as a script.
 
@@ -178,4 +178,4 @@ You have now called the same container from both PL/SQL and SQL. The later RAG l
 
 * **Author** - Andy Rivenes, Product Manager, AI Vector Search
 * **Contributors** - David Start
-* **Last Updated By/Date** - David Start, August 2026
+* **Last Updated By/Date** - David Start, September 2026

@@ -53,15 +53,15 @@ The application opens on the National Parks image-search page.
 
 ## Task 2: Search with Text
 
-1. Enter `geysers` in the text-search field and select **Search Text**.
+1. Enter `Civil War` in the text-search field and select **Search Text**.
 
-    ![Geysers entered in the APEX text-search field](images/container-apex-text-entry.png " ")
+    ![Civil War entered in the APEX text-search field](images/container-apex-text-entry.png " ")
 
 2. Review the ten closest image results.
 
-    ![National Parks text search results for geysers](images/container-apex-text-search.png " ")
+    ![National Parks text search results for Civil War](images/container-apex-text-search.png " ")
 
-3. Try another phrase such as `Civil War`, `waterfall`, or `rock climbing`.
+3. Try another phrase such as `arches`, `waterfall`, or `rock climbing`.
 
 For a text search, the application calls `clip-vit-base-patch32-txt`. The returned 512-dimensional vector is compatible with the vectors generated from the stored image BLOBs.
 
@@ -163,4 +163,4 @@ The APEX page computes one search vector with the appropriate function and store
 
 * **Authors** - Andy Rivenes and Markus Kissling, Product Managers, AI Vector Search
 * **Contributors** - David Start
-* **Last Updated By/Date** - David Start, August 2026
+* **Last Updated By/Date** - David Start, September 2026
